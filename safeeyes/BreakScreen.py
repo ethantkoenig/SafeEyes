@@ -55,6 +55,8 @@ class BreakScreen(object):
         self.shortcut_disable_time = 2
         self.strict_break = False
         self.windows = []
+        self._break_time_event = threading.Event()
+        self._break_time = 0
 
         # Initialize the theme
         css_provider = Gtk.CssProvider()
@@ -141,9 +143,6 @@ class BreakScreen(object):
         """
         Show an empty break screen on all screens.
         """
-        # Lock the keyboard
-        thread = threading.Thread(target=self.__lock_keyboard)
-        thread.start()
 
         logging.info("Show break screens in all displays")
         screen = Gtk.Window().get_screen()
@@ -165,22 +164,12 @@ class BreakScreen(object):
             img_break = builder.get_object("img_break")
             box_buttons = builder.get_object("box_buttons")
 
-            # Add the buttons
-            if not self.strict_break:
-                # Add postpone button
-                if self.enable_postpone:
-                    btn_postpone = Gtk.Button(_('Postpone'))
-                    btn_postpone.get_style_context().add_class('btn_postpone')
-                    btn_postpone.connect('clicked', self.on_postpone_clicked)
-                    btn_postpone.set_visible(True)
-                    box_buttons.pack_start(btn_postpone, True, True, 0)
-
-                # Add the skip button
-                btn_skip = Gtk.Button(_('Skip'))
-                btn_skip.get_style_context().add_class('btn_skip')
-                btn_skip.connect('clicked', self.on_skip_clicked)
-                btn_skip.set_visible(True)
-                box_buttons.pack_start(btn_skip, True, True, 0)
+            entry = Gtk.Entry()
+            entry.connect("activate", self.__on_entry_activate)
+            entry.set_visible(True)
+            entry.set_visibility(True)
+            box_buttons.pack_start(entry, True, True, 0)
+            entry.set_can_focus(True)
 
             # Set values
             if image_path:
@@ -202,11 +191,39 @@ class BreakScreen(object):
                 window.move(x, y)
             window.stick()
             window.set_keep_above(True)
+            window.set_can_focus(True)
+            window.set_focus_on_map(True)
             window.present()
             # In other desktop environments, move the window after present
             if self.context['desktop'] != 'unity':
                 window.move(x, y)
             window.fullscreen()
+            window.set_focus(entry)
+
+    def get_break_time(self):
+        self._break_time_event.wait()
+        self._break_time_event.clear()
+        return self._break_time
+
+    def __on_entry_activate(self, entry):
+        if self._break_time_event.is_set():
+            return
+        try:
+            rating = int(entry.get_text())
+        except ValueError:
+            return
+
+        if rating >= 8:
+            self._break_time = 0
+        elif rating >= 6:
+            self._break_time = 15
+        else:
+            self._break_time = 30
+
+        if self._break_time > 0:
+            Utility.start_thread(self.__lock_keyboard)
+
+        self._break_time_event.set()
 
     def __update_count_down(self, count):
         """

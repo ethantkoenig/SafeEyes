@@ -256,9 +256,8 @@ class SafeEyesCore(object):
         Start the break screen.
         """
         self.context['state'] = State.BREAK
-        break_obj = self.breaks[self.next_break_index]
-        countdown = break_obj.time
-        total_break_time = countdown
+        total_break_time = self.get_total_break_time()
+        countdown = total_break_time
 
         while countdown and self.running and not self.context['skipped'] and not self.context['postponed']:
             seconds = total_break_time - countdown

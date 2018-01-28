@@ -81,6 +81,7 @@ class SafeEyes(object):
         self.safe_eyes_core.on_count_down += self.countdown
         self.safe_eyes_core.on_stop_break += self.stop_break
         self.safe_eyes_core.on_update_next_break += self.update_next_break
+        self.safe_eyes_core.get_total_break_time = self.break_screen.get_break_time
         self.safe_eyes_core.initialize(self.config)
         self.context['api']['take_break'] = lambda: Utility.execute_main_thread(self.safe_eyes_core.take_break)
         self.context['api']['has_breaks'] = self.safe_eyes_core.has_breaks

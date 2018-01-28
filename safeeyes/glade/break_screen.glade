@@ -106,7 +106,7 @@
                           <object class="GtkLabel" id="lbl_count">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">00</property>
+                            <property name="label" translatable="yes"></property>
                             <style>
                               <class name="lbl_count"/>
                             </style>
