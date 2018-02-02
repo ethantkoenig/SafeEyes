@@ -257,14 +257,20 @@ class SafeEyesCore(object):
         """
         self.context['state'] = State.BREAK
         total_break_time = self.get_total_break_time()
-        countdown = total_break_time
+        if total_break_time == 0:
+            self.clear_break_time()
+            Utility.execute_main_thread(self.__fire_stop_break)
+            return
 
+        countdown = total_break_time
         while countdown and self.running and not self.context['skipped'] and not self.context['postponed']:
             seconds = total_break_time - countdown
             self.on_count_down.fire(countdown, seconds)
             time.sleep(1)    # Sleep for 1 second
             countdown -= 1
-        Utility.execute_main_thread(self.__fire_stop_break)
+        self.on_count_down.fire(0, total_break_time)
+        self.clear_break_time()
+        Utility.execute_main_thread(self.__fire_start_break)
 
     def __fire_stop_break(self):
         # Loop terminated because of timeout (not skipped) -> Close the break alert

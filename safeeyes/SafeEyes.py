@@ -82,6 +82,7 @@ class SafeEyes(object):
         self.safe_eyes_core.on_stop_break += self.stop_break
         self.safe_eyes_core.on_update_next_break += self.update_next_break
         self.safe_eyes_core.get_total_break_time = self.break_screen.get_break_time
+        self.safe_eyes_core.clear_break_time = self.break_screen.clear_break_time
         self.safe_eyes_core.initialize(self.config)
         self.context['api']['take_break'] = lambda: Utility.execute_main_thread(self.safe_eyes_core.take_break)
         self.context['api']['has_breaks'] = self.safe_eyes_core.has_breaks
@@ -224,7 +225,9 @@ class SafeEyes(object):
         Pass the break information to plugins and break screen.
         """
         if not self.plugins_manager.start_break(break_obj):
-            return False
+            # TODO: if we return False, that will mess up repeated breaks
+            # return False
+            return True
         # Get the HTML widgets content from plugins
         widget = self.plugins_manager.get_break_screen_widgets(break_obj)
         self.break_screen.show_message(break_obj, widget)

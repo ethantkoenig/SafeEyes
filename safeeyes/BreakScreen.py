@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import datetime
 import logging
 import os
 import threading
@@ -124,6 +125,8 @@ class BreakScreen(object):
         """
         Show the break screen with the given message on all displays.
         """
+        if len(self.windows) > 0:  # already displayed
+            return
         message = break_obj.name
         image_path = break_obj.image
         self.enable_shortcut = not self.strict_break and self.shortcut_disable_time <= 0
@@ -200,9 +203,11 @@ class BreakScreen(object):
             window.fullscreen()
             window.set_focus(entry)
 
+    def clear_break_time(self):
+        self._break_time_event.clear()
+
     def get_break_time(self):
         self._break_time_event.wait()
-        self._break_time_event.clear()
         return self._break_time
 
     def __on_entry_activate(self, entry):
@@ -210,7 +215,11 @@ class BreakScreen(object):
             return
         try:
             rating = int(entry.get_text())
+            with open("ratings.txt", "a") as f:
+                f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + ": " + str(rating) + "\n")
         except ValueError:
+            self._break_time = 0
+            self._break_time_event.set()
             return
 
         if rating >= 8:
@@ -219,9 +228,6 @@ class BreakScreen(object):
             self._break_time = 15
         else:
             self._break_time = 30
-
-        if self._break_time > 0:
-            Utility.start_thread(self.__lock_keyboard)
 
         self._break_time_event.set()
 
