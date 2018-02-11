@@ -20,6 +20,7 @@
 import datetime
 import logging
 import os
+import requests
 import threading
 import time
 
@@ -210,11 +211,25 @@ class BreakScreen(object):
         self._break_time_event.wait()
         return self._break_time
 
+    def __score_habitca(self, up):
+        if 'HABITICA_USER_ID' not in os.environ:
+            return
+        if 'HABITICA_API_KEY' not in os.environ:
+            return
+        resp=requests.post(
+                "https://habitica.com/api/v3/tasks/0290a9e8-63c0-4a07-a970-dfd4beafd376/score/" + ("up" if up else "down"),
+                headers={"x-api-key": os.environ['HABITICA_API_KEY'],
+                    "x-api-user": os.environ['HABITICA_USER_ID']})
+        if not resp.ok:
+            print(resp)
+
     def __on_entry_activate(self, entry):
         if self._break_time_event.is_set():
             return
         try:
             rating = int(entry.get_text())
+            if rating > 10 or rating < 0:
+                raise ValueError()
             with open("ratings.txt", "a") as f:
                 f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + ": " + str(rating) + "\n")
         except ValueError:
@@ -224,9 +239,12 @@ class BreakScreen(object):
 
         if rating >= 8:
             self._break_time = 0
+            if rating >= 9:
+                self.__score_habitca(up=True)
         elif rating >= 6:
             self._break_time = 15
         else:
+            self.__score_habitca(up=False)
             self._break_time = 30
 
         self._break_time_event.set()
