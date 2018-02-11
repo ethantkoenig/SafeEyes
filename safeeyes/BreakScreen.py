@@ -60,6 +60,10 @@ class BreakScreen(object):
         self._break_time_event = threading.Event()
         self._break_time = 0
 
+        self.__message = ""
+        self.__date = datetime.datetime.now().date()
+        self._first_time = False
+
         # Initialize the theme
         css_provider = Gtk.CssProvider()
         css_provider.load_from_path(style_sheet_path)
@@ -128,10 +132,10 @@ class BreakScreen(object):
         """
         if len(self.windows) > 0:  # already displayed
             return
-        message = break_obj.name
+        self._first_time = True
         image_path = break_obj.image
         self.enable_shortcut = not self.strict_break and self.shortcut_disable_time <= 0
-        GLib.idle_add(lambda: self.__show_break_screen(message, image_path, widget))
+        GLib.idle_add(lambda: self.__show_break_screen(image_path, widget))
 
     def close(self):
         """
@@ -143,7 +147,7 @@ class BreakScreen(object):
         # Destroy other windows if exists
         GLib.idle_add(lambda: self.__destroy_all_screens())
 
-    def __show_break_screen(self, message, image_path, widget):
+    def __show_break_screen(self, image_path, widget):
         """
         Show an empty break screen on all screens.
         """
@@ -178,7 +182,7 @@ class BreakScreen(object):
             # Set values
             if image_path:
                 img_break.set_from_file(image_path)
-            lbl_message.set_label(message)
+            lbl_message.set_label(self.__get_message())
             lbl_widget.set_markup(widget)
 
             self.windows.append(window)
@@ -203,6 +207,13 @@ class BreakScreen(object):
                 window.move(x, y)
             window.fullscreen()
             window.set_focus(entry)
+
+    def __get_message(self):
+        today = datetime.datetime.now().date()
+        if today > self.__date:
+            self.__date = today
+            self.__message = ""
+        return self.__message
 
     def clear_break_time(self):
         self._break_time_event.clear()
@@ -239,14 +250,20 @@ class BreakScreen(object):
 
         if rating >= 8:
             self._break_time = 0
-            if rating >= 9:
+            if self._first_time:
+                self.__message += "👍"
                 self.__score_habitca(up=True)
         elif rating >= 6:
-            self._break_time = 15
+            if self._first_time:
+                self.__message += "✊"
+            self._break_time = 15 if rating <= 6 else 5
         else:
-            self.__score_habitca(up=False)
+            if self._first_time:
+                self.__score_habitca(up=False)
+                self.__message += "👎"
             self._break_time = 30
 
+        self._first_time = False
         self._break_time_event.set()
 
     def __update_count_down(self, count):
