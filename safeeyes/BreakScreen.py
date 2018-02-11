@@ -80,6 +80,10 @@ class BreakScreen(object):
         self.shortcut_disable_time = config.get('shortcut_disable_time', 2)
         self.strict_break = config.get('strict_break', False)
 
+        self._habitica_user_id = config.get('habitica_user_id', None)
+        self._habitica_api_key = config.get('habitica_api_key', None)
+        self._habitica_task_id = config.get('habitica_task_id', None)
+
     def skip_break(self):
         """
         Skip the break from the break screen
@@ -223,16 +227,14 @@ class BreakScreen(object):
         return self._break_time
 
     def __score_habitca(self, up):
-        if 'HABITICA_USER_ID' not in os.environ:
-            return
-        if 'HABITICA_API_KEY' not in os.environ:
+        if not self._habitica_api_key or not self._habitica_user_id or not self._habitica_task_id:
             return
         resp=requests.post(
-                "https://habitica.com/api/v3/tasks/0290a9e8-63c0-4a07-a970-dfd4beafd376/score/" + ("up" if up else "down"),
-                headers={"x-api-key": os.environ['HABITICA_API_KEY'],
-                    "x-api-user": os.environ['HABITICA_USER_ID']})
+                "https://habitica.com/api/v3/tasks/" + self._habitica_task_id + "/score/" + ("up" if up else "down"),
+                headers={"x-api-key": self._habitica_api_key,
+                    "x-api-user": self._habitica_user_id})
         if not resp.ok:
-            print(resp)
+            logging.error(resp)
 
     def __on_entry_activate(self, entry):
         if self._break_time_event.is_set():
