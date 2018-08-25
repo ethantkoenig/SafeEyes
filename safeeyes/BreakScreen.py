@@ -240,8 +240,8 @@ class BreakScreen(object):
         if self._break_time_event.is_set():
             return
         rating = entry.get_text().lower()
-        if rating != "y" and rating != "n":
-          rating = "?"
+        if rating != "y":
+          rating = "n"
         with open("ratings.txt", "a") as f:
           f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + ": " + str(rating) + "\n")
 
