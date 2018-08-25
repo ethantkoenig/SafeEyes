@@ -239,31 +239,22 @@ class BreakScreen(object):
     def __on_entry_activate(self, entry):
         if self._break_time_event.is_set():
             return
-        try:
-            rating = int(entry.get_text())
-            if rating > 10 or rating < 0:
-                raise ValueError()
-            with open("ratings.txt", "a") as f:
-                f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + ": " + str(rating) + "\n")
-        except ValueError:
-            self._break_time = 0
-            self._break_time_event.set()
-            return
+        rating = entry.get_text().lower()
+        if rating != "y" and rating != "n":
+          rating = "?"
+        with open("ratings.txt", "a") as f:
+          f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + ": " + str(rating) + "\n")
 
-        if rating >= 8:
+        if rating == "y":
             self._break_time = 0
             if self._first_time:
                 self.__message += "👍"
                 self.__score_habitca(up=True)
-        elif rating >= 6:
-            if self._first_time:
-                self.__message += "✊"
-            self._break_time = 15 if rating <= 6 else 5
-        else:
+        elif rating == "n":
             if self._first_time:
                 self.__score_habitca(up=False)
                 self.__message += "👎"
-            self._break_time = 30
+            self._break_time = 10
 
         self._first_time = False
         self._break_time_event.set()
