@@ -63,6 +63,7 @@ class BreakScreen(object):
         self.__message = ""
         self.__date = datetime.datetime.now().date()
         self._first_time = False
+        self._first_entry = False
 
         # Initialize the theme
         css_provider = Gtk.CssProvider()
@@ -137,6 +138,7 @@ class BreakScreen(object):
         if len(self.windows) > 0:  # already displayed
             return
         self._first_time = True
+        self._first_entry = True
         image_path = break_obj.image
         self.enable_shortcut = not self.strict_break and self.shortcut_disable_time <= 0
         GLib.idle_add(lambda: self.__show_break_screen(image_path, widget))
@@ -223,6 +225,9 @@ class BreakScreen(object):
         self._break_time_event.clear()
 
     def get_break_time(self):
+        if self._first_time:
+          self._first_time = False
+          return 10
         self._break_time_event.wait()
         return self._break_time
 
@@ -247,16 +252,19 @@ class BreakScreen(object):
 
         if rating == "y":
             self._break_time = 0
-            if self._first_time:
+            if self._first_entry:
                 self.__message += "👍"
-                self.__score_habitca(up=True)
+                Utility.start_thread(self.__score_habitca, up=True)
         elif rating == "n":
-            if self._first_time:
-                self.__score_habitca(up=False)
+            if self._first_entry:
+                Utility.start_thread(self.__score_habitca, up=False)
                 self.__message += "👎"
             self._break_time = 10
 
-        self._first_time = False
+        if len(self.__message) > 32:
+          self.__message = self.__message[-32:]
+
+        self._first_entry = False
         self._break_time_event.set()
 
     def __update_count_down(self, count):
